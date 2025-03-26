@@ -359,3 +359,4 @@ class DroneController:
     # По умолчанию
     print("Current state:", self.state)
     return self.action("error")
+
