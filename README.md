@@ -1,5 +1,7 @@
 # CropScout. Start to Innovate submission
 
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/format.json)](https://github.com/astral-sh/ruff)
+
 Python packages represent ROS2 nodes that power our drone control system.
 
 ## Compiling and launching the system
@@ -27,5 +29,5 @@ Source code for the web interface (FastAPI application) can be found under `web_
 
 Currently app functions in a demonstration mode, without a connection to the real drone flight controller – however, this functionality can be toggled.
 
-You can find more information about our interface in this video.
+You can find more information about our interface in [this video](https://youtu.be/sbeteT9QOic?si=jdqhlivZbSO2PQwY&t=19).
 
