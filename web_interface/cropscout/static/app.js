@@ -26,14 +26,29 @@ function initializeMap() {
     // Create map centered at specified location
     map = L.map('map', {attributionControl: false}).setView([55.557411, 37.422311], 16);
 
+    L.layerGroup([
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '&copy; <a href="https://www.esri.com/en-us/home">Esri</a>',
+            maxZoom: 19
+        }),
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '&copy; <a href="https://www.esri.com/en-us/home">Esri</a>',
+            maxZoom: 19
+        }),
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '&copy; <a href="https://www.esri.com/en-us/home">Esri</a>',
+            maxZoom: 19
+        })
+    ]).addTo(map);
+
     L.control.attribution({
         prefix: 'Leaflet'
     }).addTo(map);
 
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: '&copy; <a href="https://www.esri.com/en-us/home">Esri</a>',
-        maxZoom: 19
-    }).addTo(map);
+    // L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    //     attribution: '&copy; <a href="https://www.esri.com/en-us/home">Esri</a>',
+    //     maxZoom: 19
+    // }).addTo(map);
 
     // Add click listener for adding waypoints
     map.on('contextmenu', function (e) {
