@@ -1,11 +1,11 @@
-// app.js - Agricultural Drone Management System Frontend
-
 // Global variables
 let map, droneMarker, currentRoute = {waypoints: []};
 let routePolyline, waypointMarkers = [];
 let token = localStorage.getItem('auth_token');
 let selectedRouteId = null;
 let isDroneInMotion = false;
+
+const goida = true;
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
@@ -37,6 +37,18 @@ function initializeMap() {
 
     // Add click listener for adding waypoints
     map.on('contextmenu', function (e) {
+        // console.log(e);
+        function isValidFloat(str) {
+            return !isNaN(str) && parseFloat(str).toString() === str.trim();
+        }
+        let alt = NaN;
+
+        if (goida) {
+            while (!isValidFloat(alt)) {
+                alt = prompt('Enter desired waypoint photo altitude AGL (above ground level) in m:');
+            }
+            e.latlng.alt = alt;
+        }
         addWaypoint(e.latlng);
     });
 }
@@ -238,7 +250,8 @@ function addWaypoint(latlng) {
     currentRoute.waypoints.push({
         id: waypointId,
         lat: latlng.lat,
-        lng: latlng.lng
+        lng: latlng.lng,
+        alt: latlng.alt
     });
 
     // Add the marker to the map

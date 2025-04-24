@@ -9,7 +9,7 @@
 #   generate-hashes: false
 #   universal: false
 
--e file:.
+# -e file:.
 annotated-types==0.7.0
     # via pydantic
 anyio==4.8.0
