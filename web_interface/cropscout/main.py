@@ -278,7 +278,7 @@ async def upload_waypoint_photo(
     if not route or route.username != username:
         raise HTTPException(403, 'unauthorized')
 
-    dest_dir = DATA_ROOT / 'photos'
+    dest_dir = DATA_ROOT / f'photos_{datetime.now(UTC).strftime("%Y%m%d_%H%M")}'
     dest_dir.mkdir(exist_ok=True)
     ext = photo.filename.split('.')[-1]
     dest = dest_dir / f'{visit_id}.{ext}'
