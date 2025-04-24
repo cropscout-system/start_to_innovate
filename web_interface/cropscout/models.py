@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from cropscout.db.models import Route, Waypoint
+from db.models import Route, Waypoint
 
 __all__ = ['RouteModel', 'UserCredentials', 'PasswordUpdate', 'convert_db_route']
 

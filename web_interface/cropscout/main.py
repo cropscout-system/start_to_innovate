@@ -15,9 +15,9 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.staticfiles import StaticFiles
 from sqlmodel import select
 
-from cropscout.db import Session, get_session, setup_db
-from cropscout.db.models import Mission, Route, RouteWaypoint, VisitStatus, Waypoint, WaypointVisit
-from cropscout.models import PasswordUpdate, RouteModel, UserCredentials, convert_db_route
+from db import Session, get_session, setup_db
+from db.models import Mission, Route, RouteWaypoint, VisitStatus, Waypoint, WaypointVisit
+from models import PasswordUpdate, RouteModel, UserCredentials, convert_db_route
 
 app = FastAPI(title='CropScout Drone Control System')
 app.add_middleware(
