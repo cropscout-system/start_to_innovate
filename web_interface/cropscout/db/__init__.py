@@ -12,5 +12,4 @@ def get_session() -> None:
 
 
 def setup_db() -> None:
-    SQLModel.metadata.drop_all(engine)  # for development stage
     SQLModel.metadata.create_all(engine)

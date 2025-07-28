@@ -45,17 +45,13 @@ function initializeMap() {
         prefix: 'Leaflet'
     }).addTo(map);
 
-    // L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    //     attribution: '&copy; <a href="https://www.esri.com/en-us/home">Esri</a>',
-    //     maxZoom: 19
-    // }).addTo(map);
-
     // Add click listener for adding waypoints
     map.on('contextmenu', function (e) {
         // console.log(e);
         function isValidFloat(str) {
             return !isNaN(str) && parseFloat(str).toString() === str.trim();
         }
+
         let alt = NaN;
 
         if (goida) {
@@ -180,11 +176,17 @@ async function loadSavedRoutes() {
                 li.className = 'route-item';
                 li.dataset.id = route.id;
                 li.innerHTML = `
-                    <div>${route.name}</div>
-                    <div>${route.waypoints.length} waypoints</div>
+                    <div class="route-content">
+                        <div>${route.name}</div>
+                        <div>${route.waypoints.length} waypoints</div>
+                    </div>
+                    <div class="route-delete" data-route-id="${route.id}" title="Delete route">
+                        <i class="fas fa-times"></i>
+                    </div>
                 `;
 
-                li.addEventListener('click', () => {
+                // Add click listener for route selection (only on route content, not delete button)
+                li.querySelector('.route-content').addEventListener('click', () => {
                     // Deselect previous
                     document.querySelectorAll('.route-item').forEach(item => {
                         item.classList.remove('active');
@@ -195,6 +197,12 @@ async function loadSavedRoutes() {
                     loadRoute(route.id);
                 });
 
+                // Add click listener for delete button
+                li.querySelector('.route-delete').addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent route selection
+                    deleteRoute(route.id, route.name);
+                });
+
                 routeList.appendChild(li);
             });
         } else {
@@ -202,6 +210,40 @@ async function loadSavedRoutes() {
         }
     } catch (error) {
         console.error('Error loading routes:', error);
+    }
+}
+
+// Delete route function
+async function deleteRoute(routeId, routeName) {
+    if (!confirm(`Are you sure you want to delete the route "${routeName}"?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/routes/${routeId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            // If the deleted route was currently selected, clear it
+            if (selectedRouteId === routeId) {
+                clearCurrentRoute();
+            }
+
+            // Reload the routes list
+            loadSavedRoutes();
+
+            alert('Route deleted successfully');
+        } else {
+            const error = await response.json();
+            alert(error.detail || 'Failed to delete route');
+        }
+    } catch (error) {
+        console.error('Error deleting route:', error);
+        alert('Error deleting route');
     }
 }
 

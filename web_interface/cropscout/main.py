@@ -17,7 +17,15 @@ from fastapi.staticfiles import StaticFiles
 from sqlmodel import select
 
 from db import Session, get_session, setup_db
-from db.models import Mission, Route, RouteWaypoint, VisitStatus, Waypoint, WaypointVisit
+from db.models import (
+    Mission,
+    Route,
+    RouteWaypoint,
+    VisitStatus,
+    Waypoint,
+    WaypointVisit,
+    RouteStatus,
+)
 from models import PasswordUpdate, RouteModel, UserCredentials, convert_db_route
 
 app = FastAPI(title='CropScout Drone Control System')
@@ -83,7 +91,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 
 @app.post('/api/routes', response_model=RouteModel)
 async def create_route(
-        route: RouteModel, db: Session = Depends(get_session), username: str = Depends(get_current_user)
+    route: RouteModel, db: Session = Depends(get_session), username: str = Depends(get_current_user)
 ):
     db_route = Route(name=route.name, username=username)
     db.add(db_route)
@@ -109,14 +117,14 @@ async def create_route(
 
 @app.get('/api/routes', response_model=list[RouteModel])
 async def get_routes(db: Session = Depends(get_session), username: str = Depends(get_current_user)):
-    routes_query = select(Route).where(Route.username == username)
+    routes_query = select(Route).where(Route.username == username, Route.status == RouteStatus.ACTIVE)
     db_routes = db.exec(routes_query).all()
     return [convert_db_route(db_route, db_route.waypoints) for db_route in db_routes]
 
 
 @app.get('/api/routes/{route_id}', response_model=RouteModel)
 async def get_route(
-        route_id: str, db: Session = Depends(get_session), username: str = Depends(get_current_user)
+    route_id: str, db: Session = Depends(get_session), username: str = Depends(get_current_user)
 ):
     try:
         route_uuid = uuid.UUID(route_id)
@@ -132,9 +140,31 @@ async def get_route(
     return convert_db_route(db_route, db_route.waypoints)
 
 
+@app.delete('/api/routes/{route_id}')
+async def delete_route(
+    route_id: str, db: Session = Depends(get_session), username: str = Depends(get_current_user)
+):
+    try:
+        route_uuid = uuid.UUID(route_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail='Invalid route ID format') from e
+
+    db_route = db.get(Route, route_uuid)
+    if not db_route or db_route.status == RouteStatus.DELETED:
+        raise HTTPException(status_code=404, detail='Route not found')
+    if db_route.username != username:
+        raise HTTPException(status_code=403, detail='Route not accessible')
+
+    db_route.status = RouteStatus.DELETED
+    db.add(db_route)
+    db.commit()
+
+    return {'message': 'Route deleted successfully'}
+
+
 @app.post('/api/routes/{route_id}/start')
 async def start_mission(
-        route_id: str, db: Session = Depends(get_session), username: str = Depends(get_current_user)
+    route_id: str, db: Session = Depends(get_session), username: str = Depends(get_current_user)
 ):
     try:
         route_uuid = uuid.UUID(route_id)
@@ -167,7 +197,7 @@ async def start_mission(
 
 @app.get('/api/missions/current/waypoints', response_model=list[dict])
 async def get_waypoints(
-        db: Session = Depends(get_session), username: str = Depends(get_current_user)
+    db: Session = Depends(get_session), username: str = Depends(get_current_user)
 ):
     planned_visits_query = (
         select(WaypointVisit)
@@ -214,9 +244,9 @@ async def get_waypoints(
 
 @app.post('/api/missions/current/status')
 async def update_waypoints_status(
-        updates: dict[str, str] = Body(...),
-        db: Session = Depends(get_session),
-        username: str = Depends(get_current_user)
+    updates: dict[str, str] = Body(...),
+    db: Session = Depends(get_session),
+    username: str = Depends(get_current_user),
 ):
     """
     Expects a JSON body like:
@@ -253,10 +283,7 @@ async def update_waypoints_status(
         visit.status = new_status
 
     db.commit()
-    return {
-        'updated': len(updates) - len(errors),
-        'errors': errors
-    }
+    return {'updated': len(updates) - len(errors), 'errors': errors}
 
 
 @app.post('/api/missions/current/waypoints/{visit_id}/photo')
@@ -264,7 +291,7 @@ async def upload_waypoint_photo(
     visit_id: str,
     photo: UploadFile = File(...),
     db: Session = Depends(get_session),
-    username: str = Depends(get_current_user)
+    username: str = Depends(get_current_user),
 ):
     try:
         vid = uuid.UUID(visit_id)
@@ -285,10 +312,7 @@ async def upload_waypoint_photo(
     with dest.open('wb') as buf:
         shutil.copyfileobj(photo.file, buf)
 
-    return {
-        'message': 'uploaded',
-        'photo_url': f'/static/photos/{visit_id}.{ext}'
-    }
+    return {'message': 'uploaded', 'photo_url': f'/static/photos/{visit_id}.{ext}'}
 
 
 @app.post('/api/auth/login')
@@ -316,7 +340,7 @@ async def login(credentials: UserCredentials):
 
 @app.post('/api/auth/change-password')
 async def change_password(
-        password_update: PasswordUpdate, username: str = Depends(get_current_user)
+    password_update: PasswordUpdate, username: str = Depends(get_current_user)
 ):
     if not verify_password(password_update.current_password, users[username]['password_hash']):
         raise HTTPException(status_code=400, detail='Current password is incorrect')

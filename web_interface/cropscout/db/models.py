@@ -5,6 +5,11 @@ from uuid import UUID, uuid4
 from sqlmodel import Field, Relationship, SQLModel
 
 
+class RouteStatus(StrEnum):
+    ACTIVE = auto()
+    DELETED = auto()
+
+
 class VisitStatus(StrEnum):
     PLANNED = auto()
     IN_PROGRESS = auto()
@@ -49,6 +54,7 @@ class Route(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     name: str
     username: str
+    status: RouteStatus = Field(default=RouteStatus.ACTIVE)
 
     waypoints: list[Waypoint] = Relationship(back_populates='routes', link_model=RouteWaypoint)
     missions: list['Mission'] = Relationship(back_populates='route')
