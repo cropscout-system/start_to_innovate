@@ -41,8 +41,8 @@ class ObstacleAvoidanceController:
         Args:
           initial_altitude: float. Начальная высота дрона.
         """
-        self.state = 'NORMAL'
-        self.prev_state = 'NORMAL'
+        self.state = "NORMAL"
+        self.prev_state = "NORMAL"
 
         # EXTRA
         self.is_extra = False
@@ -177,17 +177,17 @@ class ObstacleAvoidanceController:
         Returns:
           str: команда, при необходимости дополненная суффиксом "_slow".
         """
-        if action == 'error':
-            print('ОШИБКА! Функция ничего не вернула.')
-            return 'stop'
+        if action == "error":
+            print("ОШИБКА! Функция ничего не вернула.")
+            return "stop"
 
         if distance != -1:
-            if action in ('backward', 'forward'):
+            if action in ("backward", "forward"):
                 if distance < self.max_lidar_distance:
-                    return action + '_slow'
-            elif action in ('ascend', 'descend'):
+                    return action + "_slow"
+            elif action in ("ascend", "descend"):
                 if distance < self.max_rangefinder_distance:
-                    return action + '_slow'
+                    return action + "_slow"
         return action
 
     def get_angle_to_goal(self):
@@ -226,86 +226,97 @@ class ObstacleAvoidanceController:
 
         # EXTREME_ASCENDING, EXTREME_DESCENDING
         if range_down < self.safety_box_half:
-            self.set_state('EXTREME_ASCENDING')
-            return self.action('ascend', range_up)
+            self.set_state("EXTREME_ASCENDING")
+            return self.action("ascend", range_up)
 
         if range_up < self.safety_box_half:
-            self.set_state('EXTREME_DESCENDING')
-            return self.action('descend', range_down)
+            self.set_state("EXTREME_DESCENDING")
+            return self.action("descend", range_down)
 
         # Если были в EXTREME, возвращаемся к prev_state
-        if self.state in ('EXTREME_DESCENDING', 'EXTREME_ASCENDING'):
+        if self.state in ("EXTREME_DESCENDING", "EXTREME_ASCENDING"):
             self.state = self.prev_state
 
         # NORMAL / ESCAPE / EXTREME_* ...
-        if self.state in ('NORMAL', 'EXTREME_DESCENDING', 'EXTREME_ASCENDING', 'ESCAPE'):
+        if self.state in (
+            "NORMAL",
+            "EXTREME_DESCENDING",
+            "EXTREME_ASCENDING",
+            "ESCAPE",
+        ):
             if obstacle_distance < self.max_lidar_distance:
                 if wide_obstacle:
-                    self.set_state('ASCENDING')
-                    return self.action('ascend', range_up)
+                    self.set_state("ASCENDING")
+                    return self.action("ascend", range_up)
                 # Узкое препятствие (столб)
                 left_count = sum(1 for a in collision_angles if math.sin(a) > 0)
                 right_count = sum(1 for a in collision_angles if math.sin(a) <= 0)
-                self.bypass_direction = 'left' if left_count <= right_count else 'right'
-                self.set_state('SIDEBYPASS')
+                self.bypass_direction = "left" if left_count <= right_count else "right"
+                self.set_state("SIDEBYPASS")
                 self.bypass_distance_went = 0
-                return f'side_{self.bypass_direction}'
-            return self.action('forward')
+                return f"side_{self.bypass_direction}"
+            return self.action("forward")
 
-        if self.state == 'ASCENDING':
+        if self.state == "ASCENDING":
             if range_up < 4:
-                self.set_state('BACKWARDS')
+                self.set_state("BACKWARDS")
                 self.set_extra_false()
-                return self.action('backward')
+                return self.action("backward")
             if obstacle_distance < self.max_lidar_distance:
                 self.set_extra_false()
-                return self.action('ascend', range_up)
+                return self.action("ascend", range_up)
             if not self.is_extra:
                 self.is_extra = True
                 self.extra_distance = self.safety_box_half
-                return self.action('ascend', range_up)
+                return self.action("ascend", range_up)
             if self.is_extra:
                 self.extra_went_distance += distance_flew
                 if self.extra_went_distance >= self.safety_box_half:
                     self.vertical_distance_to_obstacle = self.extra_went_distance
                     self.set_extra_false()
-                    self.set_state('OVERFLYING')
+                    self.set_state("OVERFLYING")
                     self.seen_obstacle = 0
                     self.went_overflying = 0
                     self.is_descending_permitted = False
-                    return self.action('forward')
-                return self.action('ascend', range_up)
+                    return self.action("forward")
+                return self.action("ascend", range_up)
 
-        elif self.state == 'BACKWARDS':
+        elif self.state == "BACKWARDS":
             _, backward_distance = self.get_collision_distance(lidar_ranges, 180)
             if backward_distance < 4:
                 self.set_extra_false()
-                return self.action('escape')
+                return self.action("escape")
             if range_up > 4:
                 if not self.is_extra:
                     self.is_extra = True
                     self.extra_distance = self.safety_box_half
-                    return self.action('backward', backward_distance)
+                    return self.action("backward", backward_distance)
                 self.extra_went_distance += distance_flew
                 if self.extra_went_distance >= self.safety_box_half:
                     self.set_extra_false()
-                    self.set_state('ASCENDING')
-                    return self.action('ascend', range_up)
-                return self.action('backward', backward_distance)
+                    self.set_state("ASCENDING")
+                    return self.action("ascend", range_up)
+                return self.action("backward", backward_distance)
             self.set_extra_false()
-            return self.action('backward', backward_distance)
+            return self.action("backward", backward_distance)
 
-        elif self.state == 'OVERFLYING':
+        elif self.state == "OVERFLYING":
             self.went_overflying += distance_flew
             # Проверяем левый/правый сектор (пример: угол 90°) на препятствия
             # Если есть препятствие, поднимаемся
-            if self.get_collision_distance(lidar_ranges, 90)[1] < self.max_lidar_distance:
-                self.set_state('ASCENDING')
+            if (
+                self.get_collision_distance(lidar_ranges, 90)[1]
+                < self.max_lidar_distance
+            ):
+                self.set_state("ASCENDING")
                 self.set_extra_false()
-                return self.action('ascend', range_up)
+                return self.action("ascend", range_up)
 
             # Если дрон прошёл над препятствием
-            if range_down < self.vertical_distance_to_obstacle + 4 or self.went_overflying > 10:
+            if (
+                range_down < self.vertical_distance_to_obstacle + 4
+                or self.went_overflying > 10
+            ):
                 self.seen_obstacle += distance_flew
 
             if (
@@ -315,9 +326,9 @@ class ObstacleAvoidanceController:
                 self.is_descending_permitted = True
 
             if range_down < self.safety_box_half:
-                self.set_state('OVERFLYING')
+                self.set_state("OVERFLYING")
                 self.set_extra_false()
-                return self.action('ascend', range_up)
+                return self.action("ascend", range_up)
             if (
                 range_down >= self.min_possible_range_down_to_descend
                 and not self.is_extra
@@ -325,28 +336,28 @@ class ObstacleAvoidanceController:
             ):
                 self.is_extra = True
                 self.extra_distance = self.safety_box_half
-                return self.action('forward')
+                return self.action("forward")
             if self.is_extra:
                 if range_down < self.min_possible_range_down_to_descend:
                     self.set_extra_false()
-                    return self.action('forward')
+                    return self.action("forward")
                 self.extra_went_distance += distance_flew
                 if self.extra_went_distance >= self.safety_box_half:
                     self.set_extra_false()
-                    self.set_state('DESCENDING')
-                    return self.action('descend', range_down)
-                return self.action('forward')
-            return self.action('forward')
+                    self.set_state("DESCENDING")
+                    return self.action("descend", range_down)
+                return self.action("forward")
+            return self.action("forward")
 
-        elif self.state == 'DESCENDING':
+        elif self.state == "DESCENDING":
             if range_down < self.safety_box_half:
-                self.set_state('ASCENDING')
-                return self.action('ascend', range_up)
+                self.set_state("ASCENDING")
+                return self.action("ascend", range_up)
             if range_down <= self.target_altitude:
-                self.set_state('NORMAL')
-                return self.action('forward')
-            return self.action('descend', range_down)
+                self.set_state("NORMAL")
+                return self.action("forward")
+            return self.action("descend", range_down)
 
         # По умолчанию
-        print('Current state:', self.state)
-        return self.action('error')
+        print("Current state:", self.state)
+        return self.action("error")

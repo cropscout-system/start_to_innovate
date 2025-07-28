@@ -6,31 +6,33 @@ from std_msgs.msg import Float32
 
 class SpeedController(Node):
     def __init__(self):
-        super().__init__('speed_controller')
+        super().__init__("speed_controller")
 
         # Create a client for the CommandLong service
-        self.command_client = self.create_client(CommandLong, '/mavros/cmd/command')
+        self.command_client = self.create_client(CommandLong, "/mavros/cmd/command")
 
         # Subscriber to listen to the /drone/speed topic
         self.speed_sub = self.create_subscription(
             Float32,  # Changed to Float32
-            '/drone/speed',  # Topic name
+            "/drone/speed",  # Topic name
             self.speed_callback,  # Callback function
             1,  # Queue size
         )
 
         while not self.command_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('CommandLong service not available, waiting...')
+            self.get_logger().info("CommandLong service not available, waiting...")
 
         # Log that the node has started
-        self.get_logger().info('Speed Controller node started. Listening to /drone/speed...')
+        self.get_logger().info(
+            "Speed Controller node started. Listening to /drone/speed..."
+        )
 
     def speed_callback(self, msg):
         """
         Callback function for the /drone/speed topic.
         """
         speed = float(msg.data)  # Extract the speed value from the message
-        self.get_logger().info(f'Received new speed: {speed} m/s')
+        self.get_logger().info(f"Received new speed: {speed} m/s")
         self.set_speed(speed)  # Call the set_speed function
 
     def set_speed(self, speed):
@@ -59,11 +61,13 @@ class SpeedController(Node):
         try:
             response = future.result()
             if response.success:
-                self.get_logger().info(f'Speed set to {speed} m/s successfully!')
+                self.get_logger().info(f"Speed set to {speed} m/s successfully!")
             else:
-                self.get_logger().error('Failed to set speed. Command was not successful.')
+                self.get_logger().error(
+                    "Failed to set speed. Command was not successful."
+                )
         except Exception as e:
-            self.get_logger().error(f'Service call failed: {e}')
+            self.get_logger().error(f"Service call failed: {e}")
 
 
 def main(args=None):
@@ -74,5 +78,5 @@ def main(args=None):
     rclpy.shutdown()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

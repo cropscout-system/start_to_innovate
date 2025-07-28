@@ -71,7 +71,10 @@ def simulate_forest_scenario():
                     dist = drone_x + random.uniform(-0.2, 0.2)
                     lidar_ranges.append(max(0.2, dist))
                 # Дрон над лесом (x ∈ [forest_end, forest_start]) и ниже 15 м
-                elif forest_start >= drone_x >= forest_end and drone_altitude < forest_height:
+                elif (
+                    forest_start >= drone_x >= forest_end
+                    and drone_altitude < forest_height
+                ):
                     # Имитируем крону — расстояния 5–8 м
                     lidar_ranges.append(random.uniform(5, 8))
                 else:
@@ -113,44 +116,46 @@ def simulate_forest_scenario():
         )
 
         # 5) Определяем, сколько дрон пролетел
-        if 'forward' in command or 'backward' in command:
+        if "forward" in command or "backward" in command:
             distance_flew = horizontal_speed
-        elif 'ascend' in command or 'descend' in command:
+        elif "ascend" in command or "descend" in command:
             distance_flew = vertical_speed
         else:
             distance_flew = 0
 
         # 6) Обновляем позицию дрона
-        if 'forward' in command:
+        if "forward" in command:
             if drone_x > forest_start:
                 drone_x = max(0, drone_x - distance_flew)
             else:
                 drone_x -= distance_flew
-        elif 'backward' in command:
+        elif "backward" in command:
             drone_x += distance_flew
-        elif 'ascend' in command:
+        elif "ascend" in command:
             controller.current_altitude += distance_flew
-        elif 'descend' in command:
-            controller.current_altitude = max(0, controller.current_altitude - distance_flew)
+        elif "descend" in command:
+            controller.current_altitude = max(
+                0, controller.current_altitude - distance_flew
+            )
 
         # 7) Визуализация
         xs = [r * math.cos(a) for r, a in zip(lidar_ranges, angles, strict=False)]
         ys = [r * math.sin(a) for r, a in zip(lidar_ranges, angles, strict=False)]
 
         ax.cla()  # Очищаем оси
-        ax.scatter(xs, ys, s=5, label='Лидар точки')
-        ax.plot(0, 0, 'ro', markersize=8, label='Дрон')
+        ax.scatter(xs, ys, s=5, label="Лидар точки")
+        ax.plot(0, 0, "ro", markersize=8, label="Дрон")
 
         ax.set_title(
-            f'Iter: {iteration + 1} | Command: {command} | '
-            f'Altitude: {controller.current_altitude:.2f} м'
+            f"Iter: {iteration + 1} | Command: {command} | "
+            f"Altitude: {controller.current_altitude:.2f} м"
         )
-        ax.set_xlabel('X (м)')
-        ax.set_ylabel('Y (м)')
+        ax.set_xlabel("X (м)")
+        ax.set_ylabel("Y (м)")
         ax.set_xlim(-25, 25)
         ax.set_ylim(-25, 25)
-        ax.set_aspect('equal')
-        ax.legend(loc='upper right')
+        ax.set_aspect("equal")
+        ax.legend(loc="upper right")
 
         # Обновляем окно
         fig.canvas.draw()
@@ -161,7 +166,7 @@ def simulate_forest_scenario():
             f"Iteration {iteration + 1}: Command: {command}, "
             f"Altitude: {controller.current_altitude:.2f} м, "
             f"drone_x: {drone_x:.2f} м, range_down: {range_down:.2f}, "
-            f"range_up: {range_up if range_up < 10 ** 8 else '10^9'}"
+            f"range_up: {range_up if range_up < 10**8 else '10^9'}"
         )
 
         # Пауза для "анимационного" эффекта
@@ -172,5 +177,5 @@ def simulate_forest_scenario():
     # plt.show()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     simulate_forest_scenario()
