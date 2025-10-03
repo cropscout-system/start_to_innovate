@@ -256,6 +256,37 @@
             color: white;
         }
 
+        .map-control-button {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(45deg, #00a3ff, #00ff9d);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+        }
+
+        .map-control-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .map-control-button i {
+            font-size: 20px;
+            color: white;
+        }
+
+        #followDroneBtn {
+            bottom: 90px;
+        }
+
         .login-container {
             position: fixed;
             top: 0;
@@ -493,6 +524,14 @@
                     Speed: <span id="speed">0 m/s</span>
                 </div>
             </div>
+        </div>
+
+        <div class="map-control-button" id="homeBtn">
+            <i class="fas fa-home"></i>
+        </div>
+
+        <div class="map-control-button" id="followDroneBtn">
+            <i class="fas fa-arrows-up-down-left-right"></i>
         </div>
 
         <div class="play-button" id="startMissionBtn" style="display: none;">

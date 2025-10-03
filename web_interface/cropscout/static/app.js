@@ -4,6 +4,10 @@ let routePolyline, waypointMarkers = [];
 let token = localStorage.getItem('auth_token');
 let selectedRouteId = null;
 let isDroneInMotion = false;
+let mouseDownTimer = null;
+let mouseDownPos = null;
+let homeLocation = null;
+let defaultZoom = 17;
 
 const goida = true;
 
@@ -23,23 +27,57 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Initialize Leaflet map
 function initializeMap() {
-    // Create map centered at specified location
-    map = L.map('map', {attributionControl: false}).setView([55.557411, 37.422311], 16);
+    // Load saved home location
+    const savedHome = localStorage.getItem('map_home');
+    if (savedHome) {
+        homeLocation = JSON.parse(savedHome);
+    }
+
+    // Load saved map state
+    // Yandex has 0.17918 lat offset – since this is their private API
+    const savedMapState = localStorage.getItem('map_state');
+    let initialLat = 55.54691;
+    let initialLng = 37.91791;
+    let initialZoom = defaultZoom;
+
+    if (savedMapState) {
+        const state = JSON.parse(savedMapState);
+        initialLat = state.lat;
+        initialLng = state.lng;
+        initialZoom = state.zoom;
+    } else if (homeLocation) {
+        initialLat = homeLocation.lat;
+        initialLng = homeLocation.lng;
+    }
+
+    map = L.map('map', {attributionControl: false}).setView([initialLat, initialLng], initialZoom);
+
+    // L.layerGroup([
+    //     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    //         attribution: '&copy; <a href="https://www.esri.com/en-us/home">Esri</a>',
+    //         maxZoom: 19
+    //     }),
+    //     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {
+    //         attribution: '&copy; <a href="https://www.esri.com/en-us/home">Esri</a>',
+    //         maxZoom: 19
+    //     }),
+    //     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+    //         attribution: '&copy; <a href="https://www.esri.com/en-us/home">Esri</a>',
+    //         maxZoom: 19
+    //     })
+    // ]).addTo(map);
 
     L.layerGroup([
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: '&copy; <a href="https://www.esri.com/en-us/home">Esri</a>',
-            maxZoom: 19
+        L.tileLayer('https://sat{s}.maps.yandex.net/tiles?l=sat&v=3.1942.0&x={x}&y={y}&z={z}&lang=ru_RU', {
+            maxZoom: 19,
+            subdomains: ['01', '02', '03', '04']
         }),
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {
-            attribution: '&copy; <a href="https://www.esri.com/en-us/home">Esri</a>',
-            maxZoom: 19
-        }),
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
-            attribution: '&copy; <a href="https://www.esri.com/en-us/home">Esri</a>',
-            maxZoom: 19
+        L.tileLayer('https://core-renderer-tiles.maps.yandex.ru/tiles?l=skl&v=25.10.02-1~b:250924101600~ib:25.10.03-0&x={x}&y={y}&z={z}&lang=ru_RU', {
+            maxZoom: 19,
         })
-    ]).addTo(map);
+    ], {
+        attribution: 'Yandex'
+    }).addTo(map);
 
     L.control.attribution({
         prefix: 'Leaflet'
@@ -47,7 +85,6 @@ function initializeMap() {
 
     // Add click listener for adding waypoints
     map.on('contextmenu', function (e) {
-        // console.log(e);
         function isValidFloat(str) {
             return !isNaN(str) && parseFloat(str).toString() === str.trim();
         }
@@ -61,6 +98,42 @@ function initializeMap() {
             e.latlng.alt = alt;
         }
         addWaypoint(e.latlng);
+    });
+
+    // Add mousedown handler for setting home
+    map.on('mousedown', function (e) {
+        mouseDownPos = e.latlng;
+        mouseDownTimer = setTimeout(function () {
+            if (mouseDownPos) {
+                const lat = mouseDownPos.lat.toFixed(6);
+                const lng = mouseDownPos.lng.toFixed(6);
+                if (confirm(`Would you like to set home at ${lat}, ${lng}?`)) {
+                    homeLocation = {lat: mouseDownPos.lat, lng: mouseDownPos.lng};
+                    localStorage.setItem('map_home', JSON.stringify(homeLocation));
+                    map.setView([homeLocation.lat, homeLocation.lng], defaultZoom);
+                }
+            }
+        }, 1000);
+    });
+
+    // Add mouseup handler to cancel hold timer
+    map.on('mouseup', function () {
+        if (mouseDownTimer) {
+            clearTimeout(mouseDownTimer);
+            mouseDownTimer = null;
+        }
+        mouseDownPos = null;
+    });
+
+    // Save map state on move/zoom
+    map.on('moveend zoomend', function () {
+        const center = map.getCenter();
+        const zoom = map.getZoom();
+        localStorage.setItem('map_state', JSON.stringify({
+            lat: center.lat,
+            lng: center.lng,
+            zoom: zoom
+        }));
     });
 }
 
@@ -106,6 +179,23 @@ function setupEventListeners() {
 
     // Logout button
     document.getElementById('logoutBtn').addEventListener('click', logout);
+
+    // Home button
+    document.getElementById('homeBtn').addEventListener('click', () => {
+        if (homeLocation) {
+            map.setView([homeLocation.lat, homeLocation.lng], defaultZoom);
+        } else {
+            map.setView([55.54691, 37.91791], defaultZoom);
+        }
+    });
+
+    // Follow drone button
+    document.getElementById('followDroneBtn').addEventListener('click', () => {
+        if (droneMarker && isDroneInMotion) {
+            const pos = droneMarker.getLatLng();
+            map.setView([pos.lat, pos.lng], defaultZoom);
+        }
+    });
 
     // Display username
     const payload = parseJwt(token);
